@@ -22,22 +22,25 @@ add_action('wp_enqueue_scripts', 'ccss_enqueue_full_css' );
 function ccss_inline_critical_css() {
     if ( !isset($_COOKIE['fullCSS']) || $_COOKIE['fullCSS'] !== 'true' ) { ?>
 
-        <script>
+        <style>
+            <?php echo file_get_contents( get_stylesheet_directory_uri().'/'.ccss_get_option_text('ccss_themelocation_critical_css') ); ?>
+        </style>
+
+        <script id="js-loadcss">
             <?php if(ccss_get_option_boolean('ccss_statuslog')){ ?>
                 console.log('Cookie (fullCSS) is not set and full css-file is not in cache. Inlining critical css in head, loading full css async with js.');
             <?php }
 
             echo file_get_contents( plugins_url('/ccss_vendor/ccss_scripts.js', __FILE__) ); ?>
 
-            var stylesheet = loadCSS('<?php echo get_stylesheet_directory_uri().'/'.ccss_get_option_text('ccss_themelocation_full_css') ?>');
+            var stylesheet = loadCSS('<?php echo get_stylesheet_directory_uri().'/'.ccss_get_option_text('ccss_themelocation_full_css') ?>', document.getElementById("js-loadcss"));
             onloadCSS(stylesheet, function () {
                 var expires = new Date(+new Date + (7 * 24 * 60 * 60 * 1000)).toUTCString();
                 document.cookie = 'fullCSS=true; expires=' + expires;
+                console.log( "Stylesheet has loaded." );
             });
         </script>
-        <style>
-            <?php echo file_get_contents( get_stylesheet_directory_uri().'/'.ccss_get_option_text('ccss_themelocation_critical_css') ); ?>
-        </style>
+
         <?php
     }
 }

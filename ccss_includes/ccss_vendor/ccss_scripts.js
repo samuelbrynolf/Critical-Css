@@ -1,2 +1,109 @@
-// loadCSS & onloadCSS: https://github.com/filamentgroup/loadCSS
-function onloadCSS(e,n){function t(){!o&&n&&(o=!0,n.call(e))}var o;e.addEventListener&&e.addEventListener("load",t),e.attachEvent&&e.attachEvent("onload",t),"isApplicationInstalled"in navigator&&"onloadcssdefined"in e&&e.onloadcssdefined(t)}!function(e){"use strict";var n=function(n,t,o){function i(e){return d.body?e():void setTimeout(function(){i(e)})}var a,d=e.document,l=d.createElement("link"),r=o||"all";if(t)a=t;else{var s=(d.body||d.getElementsByTagName("head")[0]).childNodes;a=s[s.length-1]}var f=d.styleSheets;l.rel="stylesheet",l.href=n,l.media="only x",i(function(){a.parentNode.insertBefore(l,t?a:a.nextSibling)});var c=function(e){for(var n=l.href,t=f.length;t--;)if(f[t].href===n)return e();setTimeout(function(){c(e)})};return l.addEventListener&&l.addEventListener("load",function(){this.media=r}),l.onloadcssdefined=c,c(function(){l.media!==r&&(l.media=r)}),l};"undefined"!=typeof exports?exports.loadCSS=n:e.loadCSS=n}("undefined"!=typeof global?global:this);
+/*! loadCSS: load a CSS file asynchronously. [c]2016 @scottjehl, Filament Group, Inc. Licensed MIT */
+(function(w){
+    "use strict";
+    /* exported loadCSS */
+    var loadCSS = function( href, before, media ){
+        // Arguments explained:
+        // `href` [REQUIRED] is the URL for your CSS file.
+        // `before` [OPTIONAL] is the element the script should use as a reference for injecting our stylesheet <link> before
+        // By default, loadCSS attempts to inject the link after the last stylesheet or script in the DOM. However, you might desire a more specific location in your document.
+        // `media` [OPTIONAL] is the media type or query of the stylesheet. By default it will be 'all'
+        var doc = w.document;
+        var ss = doc.createElement( "link" );
+        var ref;
+        if( before ){
+            ref = before;
+        }
+        else {
+            var refs = ( doc.body || doc.getElementsByTagName( "head" )[ 0 ] ).childNodes;
+            ref = refs[ refs.length - 1];
+        }
+
+        var sheets = doc.styleSheets;
+        ss.rel = "stylesheet";
+        ss.href = href;
+        // temporarily set media to something inapplicable to ensure it'll fetch without blocking render
+        ss.media = "only x";
+
+        // wait until body is defined before injecting link. This ensures a non-blocking load in IE11.
+        function ready( cb ){
+            if( doc.body ){
+                return cb();
+            }
+            setTimeout(function(){
+                ready( cb );
+            });
+        }
+        // Inject link
+        // Note: the ternary preserves the existing behavior of "before" argument, but we could choose to change the argument to "after" in a later release and standardize on ref.nextSibling for all refs
+        // Note: `insertBefore` is used instead of `appendChild`, for safety re: http://www.paulirish.com/2011/surefire-dom-element-insertion/
+        ready( function(){
+            ref.parentNode.insertBefore( ss, ( before ? ref : ref.nextSibling ) );
+        });
+        // A method (exposed on return object for external use) that mimics onload by polling until document.styleSheets until it includes the new sheet.
+        var onloadcssdefined = function( cb ){
+            var resolvedHref = ss.href;
+            var i = sheets.length;
+            while( i-- ){
+                if( sheets[ i ].href === resolvedHref ){
+                    return cb();
+                }
+            }
+            setTimeout(function() {
+                onloadcssdefined( cb );
+            });
+        };
+
+        function loadCB(){
+            if( ss.addEventListener ){
+                ss.removeEventListener( "load", loadCB );
+            }
+            ss.media = media || "all";
+        }
+
+        // once loaded, set link's media back to `all` so that the stylesheet applies once it loads
+        if( ss.addEventListener ){
+            ss.addEventListener( "load", loadCB);
+        }
+        ss.onloadcssdefined = onloadcssdefined;
+        onloadcssdefined( loadCB );
+        return ss;
+    };
+    // commonjs
+    if( typeof exports !== "undefined" ){
+        exports.loadCSS = loadCSS;
+    }
+    else {
+        w.loadCSS = loadCSS;
+    }
+}( typeof global !== "undefined" ? global : this ));
+
+/*! onloadCSS: adds onload support for asynchronous stylesheets loaded with loadCSS. [c]2016 @zachleat, Filament Group, Inc. Licensed MIT */
+/* global navigator */
+/* exported onloadCSS */
+function onloadCSS( ss, callback ) {
+    var called;
+    function newcb(){
+        if( !called && callback ){
+            called = true;
+            callback.call( ss );
+        }
+    }
+    if( ss.addEventListener ){
+        ss.addEventListener( "load", newcb );
+    }
+    if( ss.attachEvent ){
+        ss.attachEvent( "onload", newcb );
+    }
+
+    // This code is for browsers that don’t support onload
+    // No support for onload (it'll bind but never fire):
+    //	* Android 4.3 (Samsung Galaxy S4, Browserstack)
+    //	* Android 4.2 Browser (Samsung Galaxy SIII Mini GT-I8200L)
+    //	* Android 2.3 (Pantech Burst P9070)
+
+    // Weak inference targets Android < 4.4
+    if( "isApplicationInstalled" in navigator && "onloadcssdefined" in ss ) {
+        ss.onloadcssdefined( newcb );
+    }
+}
