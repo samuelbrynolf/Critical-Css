@@ -12,9 +12,6 @@ if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)){
     die('Invalid URL');
 }
 
-// ADD DOCUMENTATION FOR IS_PLUGIN_ACTIVE FOR PLUGIN
-// DOUBLECHECK https://codex.wordpress.org/Function_Reference/esc_url IN SETTINGS TO GET REAL PATHS
-
 class critical_css {
     public function __construct(){
         add_action('plugins_loaded', array(&$this, 'ccss_constants' ), 1);
