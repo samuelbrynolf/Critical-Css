@@ -37,7 +37,6 @@ function ccss_inline_critical_css() {
             onloadCSS(stylesheet, function () {
                 var expires = new Date(+new Date + (7 * 24 * 60 * 60 * 1000)).toUTCString();
                 document.cookie = 'fullCSS=true; expires=' + expires;
-                console.log( "Stylesheet has loaded." );
             });
         </script>
 
